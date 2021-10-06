@@ -98,6 +98,9 @@ public class Users {
 	}
 
 	public void setPhones(List<Phones> phones) {
+		phones.forEach((temp) -> {
+			temp.setUser(this);
+		});
 		this.phones = phones;
 	}
 

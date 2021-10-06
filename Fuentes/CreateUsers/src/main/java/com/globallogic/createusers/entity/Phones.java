@@ -4,6 +4,7 @@ import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -25,8 +26,8 @@ import lombok.ToString;
 @Entity
 public class Phones {
 	
-	@ManyToOne
-	@JoinColumn(name="user_id", nullable = true)
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name="user_id", nullable = true, referencedColumnName = "id")
 	private Users user;
 
 	@Id
