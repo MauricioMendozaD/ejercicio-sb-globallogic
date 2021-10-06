@@ -10,7 +10,6 @@ public class Response {
 	private Date lastLogin;
 	private String token;
 	private boolean isactive;
-	private String mensaje;
 	
 	public Long getId() {
 		return id;
@@ -47,12 +46,6 @@ public class Response {
 	}
 	public void setIsactive(boolean isactive) {
 		this.isactive = isactive;
-	}
-	public String getMensaje() {
-		return mensaje;
-	}
-	public void setMensaje(String mensaje) {
-		this.mensaje = mensaje;
 	}
 
 }

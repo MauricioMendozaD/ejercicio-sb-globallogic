@@ -1,13 +1,18 @@
 package com.globallogic.createusers.controller;
 
 import java.security.Key;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
 import org.hibernate.exception.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.globallogic.createusers.dto.Response;
 import com.globallogic.createusers.entity.Users;
+import com.globallogic.createusers.exceptions.FunctionalExceptionHandler;
 import com.globallogic.createusers.repository.IUserRepo;
 
 import io.jsonwebtoken.Jwts;
@@ -30,67 +36,71 @@ import io.jsonwebtoken.security.Keys;
 @Validated
 public class UserController {
 	
+	private final Logger logger = LoggerFactory.getLogger(UserController.class);
+	
 	@Autowired
 	IUserRepo usersRepo;
 
 	@PostMapping("/users")
-	@Validated(Users.class)
-	public ResponseEntity<Response> save(@Valid @RequestBody Users user) {
+	public ResponseEntity<Object> save(@Valid @RequestBody Users user) {
 		
+		logger.info("Comienza creacion de usuario: " + user.getEmail());
+		logger.debug("Request recibido: Nombre: " + user.getName() + 
+				", email: " + user.getEmail() + 
+				", password: " + user.getPassword() +
+				", telefono1: " + user.getPhones().get(0).getCitycode() + " " + user.getPhones().get(0).getCountrycode() + " " + user.getPhones().get(0).getNumber());
 		Response respuesta = null;
 		Users userCreated = null;
-		String token = null;
 		
 		try {
-			System.out.println("asdf " + user.getName());
-			System.out.println("asdf " + user.getPhones().get(0).getNumber());
 			respuesta = new Response();
 			
-			token = getJWTToken(user.getEmail());
-			System.out.println("Token: " + token);
-			user.setToken(token); 
+			logger.debug("Obteniendo JWT para usuario: " + user.getEmail());
+			user.setToken(getJWTToken(user.getEmail()));
 			
+			logger.debug("Persistiendo usuario: " + user.getEmail());
 			userCreated = usersRepo.save(user);
 			
 			respuesta.setCreated(userCreated.getCreatedAt());
 			respuesta.setId(userCreated.getId());
 			respuesta.setModified(userCreated.getUpdatedAt());
 			respuesta.setLastLogin(userCreated.getCreatedAt());
-			respuesta.setToken(token);
+			respuesta.setToken(userCreated.getToken());
 			respuesta.setIsactive(true);
 			
-			return new ResponseEntity<Response>(respuesta, HttpStatus.CREATED);
+			logger.info("Usuario creado exitosamente: " + user.getEmail());
+			return new ResponseEntity<>(respuesta, HttpStatus.CREATED);
 			
 		} catch (ConstraintViolationException cve) {
 			
-			System.out.println("Exception: " + cve.getMessage());
-			respuesta = new Response();
-			respuesta.setMensaje("El correo ya registrado");
-			
-			return new ResponseEntity<Response>(respuesta, HttpStatus.INTERNAL_SERVER_ERROR);
+			logger.error("Ya existe un usuario con Email: " + user.getEmail());
+			return FunctionalExceptionHandler.handleFunctionalException("El correo ya registrado");
 			
 		} catch (Exception e) {
 			
 			if (e.getMessage().toLowerCase().contains("on public.user(email)")) {
-				respuesta = new Response();
-				respuesta.setMensaje("El correo ya registrado");
+				logger.error("Ya existe un usuario con Email: " + user.getEmail());
+				return FunctionalExceptionHandler.handleFunctionalException("El correo ya registrado");
+
 			} else {
-				System.out.println("Exception: " + e.getMessage());
-				respuesta = new Response();
-				respuesta.setMensaje(e.getMessage());
+				logger.error("Excepcion desconocida: ", e);
+				
+				Map<String, List<String>> body = new HashMap<>();
+				List<String> errors = new ArrayList<String>();
+				errors.add("Error interno del servidor");
+				body.put("mensaje", errors);
+				
+				return new ResponseEntity<>(respuesta, HttpStatus.INTERNAL_SERVER_ERROR);
 			}
-			
-			return new ResponseEntity<Response>(respuesta, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 	
 	private String getJWTToken(String username) {
 		
 		Key secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-		System.out.println("SecretKey: " + secretKey.toString());
 		
 		List<GrantedAuthority> grantedAuthorities = AuthorityUtils
-				.commaSeparatedStringToAuthorityList("USER");
+				.commaSeparatedStringToAuthorityList("ROLE_USER");
 		
 		String token = Jwts
 				.builder()
@@ -102,6 +112,8 @@ public class UserController {
 				.setExpiration(new Date(System.currentTimeMillis() + 600000))
 				.signWith(secretKey, SignatureAlgorithm.HS256).compact();
 		
-		return "Globallogic " + token;
+		logger.debug("Token generado para usuario: " + username);
+		
+		return token;
 	}
 }
