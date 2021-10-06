@@ -7,7 +7,7 @@ Ejercicio que disponibiliza una API Rest con SpringBoot.
 Ejecutar el build de gradle en la raiz del proyecto para generar los jars correspondientes.
 
 ```bash
-./graddle build
+./gradlew build
 ```
 
 ## Uso
