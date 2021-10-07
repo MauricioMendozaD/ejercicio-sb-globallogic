@@ -4,7 +4,8 @@ Ejercicio que disponibiliza una API Rest con SpringBoot.
 
 ## Instalación
 
-Ejecutar el build de gradle en la raiz del proyecto para generar los jars correspondientes.
+Ejecutar el build de gradle en la raiz del proyecto para generar los jars correspondientes.\
+Esto también ejecutará las pruebas unitarias que cubren la mayoría de los casos de prueba.
 
 ```bash
 ./gradlew build

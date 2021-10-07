@@ -39,18 +39,24 @@ public class UserController {
 	private final Logger logger = LoggerFactory.getLogger(UserController.class);
 	
 	@Autowired
-	IUserRepo usersRepo;
+	private IUserRepo usersRepo;
 
 	@PostMapping("/users")
-	public ResponseEntity<Object> save(@Valid @RequestBody Users user) {
+	public ResponseEntity<Object> save(@Valid @RequestBody(required = false) Users user) {
 		
 		logger.info("Comienza creacion de usuario: " + user.getEmail());
 		logger.debug("Request recibido: Nombre: " + user.getName() + 
 				", email: " + user.getEmail() + 
-				", password: " + user.getPassword() +
-				", telefono1: " + user.getPhones().get(0).getCitycode() + " " + user.getPhones().get(0).getCountrycode() + " " + user.getPhones().get(0).getNumber());
+				", password: " + user.getPassword());
+		
+		if (user.getPhones() != null) { 
+			logger.debug("Telefono1: " + user.getPhones().get(0).getCitycode() + " " 
+									   + user.getPhones().get(0).getCountrycode() + " " 
+									   + user.getPhones().get(0).getNumber());
+		}
+		
 		Response respuesta = null;
-		Users userCreated = null;
+		Users userCreated = new Users();
 		
 		try {
 			respuesta = new Response();
@@ -61,14 +67,16 @@ public class UserController {
 			logger.debug("Persistiendo usuario: " + user.getEmail());
 			userCreated = usersRepo.save(user);
 			
-			respuesta.setCreated(userCreated.getCreatedAt());
-			respuesta.setId(userCreated.getId());
-			respuesta.setModified(userCreated.getUpdatedAt());
-			respuesta.setLastLogin(userCreated.getCreatedAt());
-			respuesta.setToken(userCreated.getToken());
-			respuesta.setIsactive(true);
+			if (userCreated != null) {
+				logger.info("Usuario creado exitosamente: " + user.getEmail());
+				respuesta.setCreated(userCreated.getCreatedAt());
+				respuesta.setId(userCreated.getId());
+				respuesta.setModified(userCreated.getUpdatedAt());
+				respuesta.setLastLogin(userCreated.getCreatedAt());
+				respuesta.setToken(userCreated.getToken());
+				respuesta.setIsactive(true);
+			}
 			
-			logger.info("Usuario creado exitosamente: " + user.getEmail());
 			return new ResponseEntity<>(respuesta, HttpStatus.CREATED);
 			
 		} catch (ConstraintViolationException cve) {
@@ -95,7 +103,7 @@ public class UserController {
 		}
 	}
 	
-	private String getJWTToken(String username) {
+	public String getJWTToken(String username) {
 		
 		Key secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 		
